@@ -1,33 +1,28 @@
-import numpy as np
-import open3d as o3d
+import torch
+import torchvision.transforms as transforms
+from torchvision.models import midas
+import matplotlib.pyplot as plt
+import cv2
+# Load pre-trained MiDaS model
+model = midas(pretrained=True)
+model.eval()
 
+# Load and preprocess input image
+left_img = cv2.imread("/home/erik/catkin_ws/src/VFH/VFH_ROS/DepthMaps/left_DM.png")
+preprocess = transforms.Compose([
+    transforms.Resize((384, 384)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+])
+input_tensor = preprocess(left_img)
+input_batch = input_tensor.unsqueeze(0)
 
-pointEdges = o3d.io.read_point_cloud('Data/pointcloud_edges_carton1.ply')
-edges = o3d.io.read_point_cloud('Data/edges_carton1.ply')
+# Perform depth inference
+with torch.no_grad():
+    prediction = model(input_batch)
 
-o3d.visualization.draw_geometries([pointEdges])
-o3d.visualization.draw_geometries([edges])
-
-
-#outlier remover
-
-pcd = o3d.io.read_point_cloud('./Data/point_cloud_carton1.pcd')
-
-voxel_size = 0.000001
-pcd_downsampled = pcd.voxel_down_sample(voxel_size = voxel_size)
-
-
-def display_inlier_outlier(cloud, ind):
-    inlier_cloud = cloud.select_by_index(ind)
-    outlier_cloud = cloud.select_by_index(ind, invert=True)
-
-    print("Showing outliers (red) and inliers (gray): ")
-    outlier_cloud.paint_uniform_color([1, 0, 0])
-    inlier_cloud.paint_uniform_color([0.8, 0.8, 0.8])
-    o3d.visualization.draw_geometries([inlier_cloud, outlier_cloud])
-    o3d.visualization.draw_geometries([outlier_cloud])
-
-print("Statistical oulier removal")
-cl, ind = pcd_downsampled.remove_statistical_outlier(nb_neighbors=20,
-                                                    std_ratio=2.0)
-display_inlier_outlier(pcd_downsampled, ind)
+# Display depth map
+depth_map = prediction.squeeze().cpu().numpy()
+plt.imshow(depth_map, cmap='inferno')
+plt.colorbar()
+plt.show()
