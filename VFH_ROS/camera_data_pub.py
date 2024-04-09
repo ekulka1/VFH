@@ -61,6 +61,11 @@ class ProcessPoint:
         out = out[trim_top:trim_top+h, trim_left:trim_left+w]
 
         return out
+    def fill_holes(self,mask):
+
+        kernel = np.ones((5,5), np.uint8)  # You can adjust the kernel size as needed
+        closing = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+        return closing
 
     def getObject_color(self,image_msg):
         
@@ -74,7 +79,11 @@ class ProcessPoint:
             lower=np.array([-10, 100, 100])
             upper=np.array([16, 255, 255])
             Red_mask = cv2.inRange(HSV,lower, upper)
-            self.mask = cv2.bitwise_and(image_msg, image_msg, mask = Red_mask)
+
+            Red_mask_closed = self.fill_holes(Red_mask)
+
+            self.mask = cv2.bitwise_and(image_msg, image_msg, mask = Red_mask_closed)
+
             self.mask = self.clipped_zoom(self.mask,1.5)
 
             # Find contours in the mask
@@ -102,6 +111,10 @@ class ProcessPoint:
                 self.rgb_object.unregister()
                 self.pictures.append(self.rgb_object)
                 self.process_cloud(self.pictures, False)
+
+                
+                #self.mask = self.fill_holes(self.mask)
+                #self.mask = cv2.bitwise_and(image_msg, image_msg, mask=Red_mask_closed)
 
                 cv2.imwrite("/home/erik/catkin_ws/src/VFH/VFH_ROS/pictures/color_result.png", self.mask)
             else:
