@@ -4,9 +4,10 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt 
 import pandas as pd
 import os
+import open3d as o3d
 
-
-pcd1 = PyntCloud.from_file("./Data/point_cloud_carton3.ply")
+#pcd1 = PyntCloud.from_file("./Data/point_cloud_carton3.ply")
+pcd1 = PyntCloud.from_file("/home/erik/catkin_ws/src/VFH/VFH_ROS/Data/testing_object_pc.ply")
 #pcd1 = PyntCloud.from_file("/TetrahedronMultiple.pcd")
 #pcd1 = PyntCloud.from_file("/ArtificialPointClouds/CubeFractal2.pcd")
 
@@ -81,6 +82,11 @@ edge_points = PyntCloud(pd.DataFrame(data=edge_np,columns=clmns))
 # pcd_points.plot()
 # edge_points.plot()
 
-PyntCloud.to_file(pcd_points,output_dir+'pointcloud_edges_carton1.ply')   # Save the whole point cloud by painting the edge points
-PyntCloud.to_file(edge_points,output_dir+'edges_carton1.ply')             # Save just the edge points
+PyntCloud.to_file(pcd_points,"/home/erik/catkin_ws/src/VFH/VFH_ROS/Data/pcd_points_pc.ply")   # Save the whole point cloud by painting the edge points
+PyntCloud.to_file(edge_points,"/home/erik/catkin_ws/src/VFH/VFH_ROS/Data/edge_points_pc.ply")             # Save just the edge points
 
+pcd_points = o3d.io.read_point_cloud("/home/erik/catkin_ws/src/VFH/VFH_ROS/Data/pcd_points_pc.ply")
+pcd_edges = o3d.io.read_point_cloud("/home/erik/catkin_ws/src/VFH/VFH_ROS/Data/edge_points_pc.ply")
+
+o3d.visualization.draw_geometries([pcd_points])
+o3d.visualization.draw_geometries([pcd_edges])
