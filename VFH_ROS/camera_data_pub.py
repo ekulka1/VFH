@@ -116,7 +116,7 @@ class ProcessPoint:
                 #self.mask = self.fill_holes(self.mask)
                 #self.mask = cv2.bitwise_and(image_msg, image_msg, mask=Red_mask_closed)
 
-                cv2.imwrite("/home/erik/catkin_ws/src/VFH/VFH_ROS/pictures/color_result.png", self.mask)
+                #cv2.imwrite("/home/erik/catkin_ws/src/VFH/VFH_ROS/pictures/color_result.png", self.mask)
             else:
                 print("No red object detected.")
 
@@ -140,7 +140,7 @@ class ProcessPoint:
             #depth_colormap = cv2.applyColorMap(depth_equalized, cv2.COLORMAP_JET)
 
             #cv2.imwrite("/home/erik/catkin_ws/src/VFH/VFH_ROS/pictures/testing_depth2.png", depth_colormap)
-            cv2.imwrite("/home/erik/catkin_ws/src/VFH/VFH_ROS/pictures/testing_depth2.png", self.cv_depth_image)
+            #cv2.imwrite("/home/erik/catkin_ws/src/VFH/VFH_ROS/pictures/testing_depth2.png", self.cv_depth_image)
             
             
             depth_read = cv2.imread("/home/erik/catkin_ws/src/VFH/VFH_ROS/pictures/testing_depth2.png")
@@ -172,7 +172,8 @@ class ProcessPoint:
             #cv2.waitKey(0)
             #cv2.destroyAllWindows()
             
-            cv2.imwrite("/home/erik/catkin_ws/src/VFH/VFH_ROS/pictures/depth_result.png", result)
+
+            #cv2.imwrite("/home/erik/catkin_ws/src/VFH/VFH_ROS/pictures/depth_result.png", result)
             
             self.depth_object.unregister()
             self.pictures.append(self.cv_depth_image)
@@ -300,14 +301,14 @@ class ProcessPoint:
             pcdload_o3d.colors = o3d.utility.Vector3dVector(colors)
 
             print("pcdload_o3d")
-            o3d.visualization.draw_geometries([pcdload_o3d])
+            #o3d.visualization.draw_geometries([pcdload_o3d])
             
 
             # Edge detection
             
             # define hyperparameters
             k_n = 1000 #50
-            thresh = 0.09 #0.08
+            thresh = 0.07  #0.08
 
             pcd_np = np.zeros((len(pcdload.points),6))
 
@@ -376,7 +377,7 @@ class ProcessPoint:
             pcdpoints_o3d.points = o3d.utility.Vector3dVector(points)
             pcdpoints_o3d.colors = o3d.utility.Vector3dVector(colors)
 
-            
+            print("point cloud with edges")        
             o3d.visualization.draw_geometries([pcdpoints_o3d])
 
             # convert Pyntcloud pcl to open3d pcl
@@ -389,12 +390,99 @@ class ProcessPoint:
             pcdedges_o3d.points = o3d.utility.Vector3dVector(points)
             pcdedges_o3d.colors = o3d.utility.Vector3dVector(colors)
 
-            
+            print("edges")
             o3d.visualization.draw_geometries([pcdedges_o3d])
+
+
+
+            def mostly_right_and_above(point_cloud):
+                rightmost_point = None
+                lowest_point = None
+                leftmost_point = None
+                furthest_point = None
+
+
+                for point in point_cloud:
+                    x, y, z = point
+
+                    if rightmost_point is None or x > rightmost_point[0]:
+                        rightmost_point = point
+                    if lowest_point is None or y < lowest_point[1]:
+                        lowest_point = point
+                    if leftmost_point is None or x < leftmost_point[0]:
+                        leftmost_point = point
+                    if furthest_point is None or z < furthest_point[2]:
+                        furthest_point = point
+
+
+                return rightmost_point, lowest_point, furthest_point, leftmost_point
+            
+            def find_centroid(point_cloud):
+                return np.mean(point_cloud, axis=0)
+
+            def find_highest_center_point(point_cloud, centroid, range_threshold):
+                highest_point = None
+                max_height = -float('inf')
+
+                for point in point_cloud:
+                    if np.linalg.norm(point - centroid) < range_threshold:
+                        if point[2] > max_height:
+                            highest_point = point
+                            max_height = point[2]
+
+                return highest_point
+
+            # Convert Open3D point cloud object to NumPy array
+            pcdedges_np = np.asarray(pcdedges_o3d.points)
+            rightmost_point, lowest_point, furthest_point, leftmost_point = mostly_right_and_above(pcdedges_np)
+            
+            pcd_np = np.asarray(pcdedges_o3d.points)
+            centroid = find_centroid(pcd_np)
+            range_threshold = 0.1  
+            highest_center_point = find_highest_center_point(pcd_np, centroid, range_threshold)
+            
+            
+            color_rightmost = [0, 0, 1]  # Blue color
+            color_lowest = [0, 1, 0]  # Green color
+            color_furthest = [1, 0, 0]  # Red color
+            color_leftmost = [1, 1, 0]  # Yellow color
+            color_highest_center = [0, 1, 0]  
+            #pcdedges_o3d.colors = o3d.utility.Vector3dVector([color_rightmost if (point == rightmost_point).all() else color_lowest if (point == lowest_point).all() else color_furthest if (point == furthest_point).all() else color_leftmost if (point == leftmost_point).all() else [0, 0, 0] for point in pcdedges_np])
+            
+            #if highest_center_point is not None:
+            #    color_highest_center = [0, 1, 0]  
+            #    pcdedges_o3d.colors = o3d.utility.Vector3dVector([color_highest_center if (point == highest_center_point).all() else [0, 0, 0] for point in pcd_np])
+            
+            pcdedges_o3d.colors = o3d.utility.Vector3dVector(
+                [color_rightmost if (point == rightmost_point).all() else
+                color_lowest if (point == lowest_point).all() else
+                color_furthest if (point == furthest_point).all() else
+                color_leftmost if (point == leftmost_point).all() else
+                color_highest_center if (point == highest_center_point).all() else
+                [0, 0, 0] for point in pcd_np])
+        
+            print("extreme points")
+            o3d.visualization.draw_geometries([pcdedges_o3d])
+
+            # Create LineSet for connecting extreme points to the highest center point
+            lines = [[rightmost_point, highest_center_point], [lowest_point, highest_center_point], [furthest_point, highest_center_point], [leftmost_point, highest_center_point]]
+            line_colors = [[1, 0, 0] for _ in range(len(lines))]  # Red color for lines
+
+            line_set = o3d.geometry.LineSet()
+            line_set.points = o3d.utility.Vector3dVector([point for line in lines for point in line])
+            line_set.lines = o3d.utility.Vector2iVector([[i, i + 1] for i in range(0, len(lines) * 2, 2)])
+            line_set.colors = o3d.utility.Vector3dVector(line_colors)
+            
+            o3d.visualization.draw_geometries([pcdedges_o3d, line_set])
+
+            o3d.visualization.draw_geometries([main_pcd, line_set])
             
 
 
-
+           
+                
+            
+            #o3d.visualization.draw_geometries([pcdedges_o3d])
 
 if __name__ == '__main__':
     pp = ProcessPoint()
