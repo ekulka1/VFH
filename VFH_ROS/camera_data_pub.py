@@ -307,8 +307,9 @@ class ProcessPoint:
             # Edge detection
             
             # define hyperparameters
-            k_n = 1000 #50
-            thresh = 0.07  #0.08
+            
+            k_n = 400 #350-420 #50
+            thresh = 0.095  #0.08
 
             pcd_np = np.zeros((len(pcdload.points),6))
 
@@ -444,7 +445,7 @@ class ProcessPoint:
             
             color_rightmost = [0, 0, 1]  # Blue color
             color_lowest = [0, 1, 0]  # Green color
-            color_furthest = [1, 0, 0]  # Red color
+            #color_furthest = [1, 0, 0]  # Red color
             color_leftmost = [1, 1, 0]  # Yellow color
             color_highest_center = [0, 1, 0]  
             #pcdedges_o3d.colors = o3d.utility.Vector3dVector([color_rightmost if (point == rightmost_point).all() else color_lowest if (point == lowest_point).all() else color_furthest if (point == furthest_point).all() else color_leftmost if (point == leftmost_point).all() else [0, 0, 0] for point in pcdedges_np])
@@ -456,7 +457,7 @@ class ProcessPoint:
             pcdedges_o3d.colors = o3d.utility.Vector3dVector(
                 [color_rightmost if (point == rightmost_point).all() else
                 color_lowest if (point == lowest_point).all() else
-                color_furthest if (point == furthest_point).all() else
+                #color_furthest if (point == furthest_point).all() else
                 color_leftmost if (point == leftmost_point).all() else
                 color_highest_center if (point == highest_center_point).all() else
                 [0, 0, 0] for point in pcd_np])
@@ -465,22 +466,48 @@ class ProcessPoint:
             o3d.visualization.draw_geometries([pcdedges_o3d])
 
             # Create LineSet for connecting extreme points to the highest center point
-            lines = [[rightmost_point, highest_center_point], [lowest_point, highest_center_point], [furthest_point, highest_center_point], [leftmost_point, highest_center_point]]
+            lines = [[rightmost_point, highest_center_point], [lowest_point, highest_center_point], [leftmost_point, highest_center_point]]
             line_colors = [[1, 0, 0] for _ in range(len(lines))]  # Red color for lines
 
+            
+            
+
+            # parallel lines
+            leftmost_to_highest_vector = highest_center_point - leftmost_point
+            rightmost_to_highest_vector = -leftmost_to_highest_vector
+            rightmost_to_highest_point = rightmost_point + rightmost_to_highest_vector
+            new_line = [[rightmost_point, rightmost_to_highest_point]]
+            end_to_furthest_line = [[rightmost_to_highest_point, leftmost_point]]
+
+            #lowest_to_highest_vector = highest_center_point - lowest_point
+            #rightmost_to_highest_vector = -lowest_to_highest_vector
+            #rightmost_to_highest_point_low = rightmost_point + rightmost_to_highest_vector
+            #new_line_low = [[rightmost_point, rightmost_to_highest_point_low]]
+
+
+            #lines.extend(new_line_low)
+            lines.extend(new_line)
+            lines.extend(end_to_furthest_line)
+            line_colors = [[1, 0, 0] for _ in range(len(lines))] 
+            
+            
+            
+            
             line_set = o3d.geometry.LineSet()
             line_set.points = o3d.utility.Vector3dVector([point for line in lines for point in line])
             line_set.lines = o3d.utility.Vector2iVector([[i, i + 1] for i in range(0, len(lines) * 2, 2)])
             line_set.colors = o3d.utility.Vector3dVector(line_colors)
             
+            
+            print("line set on cube pcd")
             o3d.visualization.draw_geometries([pcdedges_o3d, line_set])
 
-            o3d.visualization.draw_geometries([main_pcd, line_set])
             
-
-
-           
-                
+            
+            
+            print("line set on original pcd")
+            o3d.visualization.draw_geometries([pcdload_o3d, line_set])
+            print("end")
             
             #o3d.visualization.draw_geometries([pcdedges_o3d])
 
