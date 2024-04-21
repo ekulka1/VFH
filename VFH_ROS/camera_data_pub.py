@@ -71,7 +71,7 @@ class ProcessPoint:
         
         try:
             image_msg = bridge.imgmsg_to_cv2(image_msg, desired_encoding="passthrough")
-    
+
             
 
             ###https://github.com/Amirag96/Red-color-detection/blob/master/red.py
@@ -116,7 +116,7 @@ class ProcessPoint:
                 #self.mask = self.fill_holes(self.mask)
                 #self.mask = cv2.bitwise_and(image_msg, image_msg, mask=Red_mask_closed)
 
-                #cv2.imwrite("/home/erik/catkin_ws/src/VFH/VFH_ROS/pictures/color_result.png", self.mask)
+                #cv2.imwrite("/home/erik/catkin_ws/src/VFH/VFH_ROS/pictures/color_result_otherside.png", self.mask)
             else:
                 print("No red object detected.")
 
@@ -126,13 +126,17 @@ class ProcessPoint:
     
     def getObject_depth(self,image_msg):
         
-      
+        
         try:
             # Convert ROS Image message to OpenCV image
             self.cv_depth_image = bridge.imgmsg_to_cv2(image_msg, desired_encoding="16UC1") #16UC1
             print("saving depth image")
 
+
             self.cv_depth_image = self.cv_depth_image.astype(np.float32) / 4 #25
+            
+            
+            
 
             #depth_array = np.array(self.cv_depth_image, dtype=np.float32)
             #depth_normalized = cv2.normalize(depth_array, None, alpha=100, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
@@ -145,10 +149,7 @@ class ProcessPoint:
             
             depth_read = cv2.imread("/home/erik/catkin_ws/src/VFH/VFH_ROS/pictures/testing_depth2.png")
             
-            #cv2.imshow("Depth Rimport osead",depth_read)
-            #cv2.waitKey(0)  
-            #cv2.destroyAllWindows()
-
+            
             depth_read = self.clipped_zoom(depth_read,1.5)
             #print("object points:" , self.object_points)
             for point in self.object_points:
@@ -173,7 +174,7 @@ class ProcessPoint:
             #cv2.destroyAllWindows()
             
 
-            #cv2.imwrite("/home/erik/catkin_ws/src/VFH/VFH_ROS/pictures/depth_result.png", result)
+            #cv2.imwrite("/home/erik/catkin_ws/src/VFH/VFH_ROS/pictures/depth_result_otherside.png", result)
             
             self.depth_object.unregister()
             self.pictures.append(self.cv_depth_image)
@@ -194,20 +195,25 @@ class ProcessPoint:
             #depth_image = cloud
         if len(cloud) == 2:
             print("mam obe")
-            depth_obj = cv2.imread("/home/erik/catkin_ws/src/VFH/VFH_ROS/pictures/depth_result.png")
+            #depth_obj = cv2.imread("/home/erik/catkin_ws/src/VFH/VFH_ROS/pictures/testing_depth4.png")
+            
             color_obj = cv2.imread("/home/erik/catkin_ws/src/VFH/VFH_ROS/pictures/color_result.png")
+            depth_obj = cv2.imread("/home/erik/catkin_ws/src/VFH/VFH_ROS/pictures/depth_result.png")
+            #color_obj = cv2.imread("/home/erik/catkin_ws/src/VFH/VFH_ROS/pictures/color_result.png")
             
             
+            #depth_obj = cv2.imread("/home/erik/catkin_ws/src/VFH/VFH_ROS/pictures/depth_result_otherside.png")
+            #color_obj = cv2.imread("/home/erik/catkin_ws/src/VFH/VFH_ROS/pictures/color_result_otherside.png")
 
             cv2.imshow("Depth Read",depth_obj)
             cv2.waitKey(0)  
             cv2.destroyAllWindows()
 
             cv2.imshow("Color Read",color_obj)
-            cv2.waitKey(0)  
-            cv2.destroyAllWindows()
+            cv2.waitKey(0)                      
+            cv2.destroyAllWindows()                     
 
-            
+
 
             color_obj = np.asarray(color_obj)
             depth_obj = np.asarray(depth_obj)
@@ -308,8 +314,8 @@ class ProcessPoint:
             
             # define hyperparameters
             
-            k_n = 400 #350-420 #50
-            thresh = 0.095  #0.08
+            k_n = 400 # otherside 40  #400     #350-420 #50
+            thresh = 0.095 # otherside 0.1 #0.95           #0.08
 
             pcd_np = np.zeros((len(pcdload.points),6))
 
@@ -335,6 +341,7 @@ class ProcessPoint:
             #img = ax.scatter(x, y, z, c=sigma, cmap='jet')
 
             # visualize the edges
+
             sigma = sigma>thresh
 
             fig = plt.figure()
@@ -404,9 +411,9 @@ class ProcessPoint:
 
 
                 for point in point_cloud:
-                    x, y, z = point
+                    x, y, z = point 
 
-                    if rightmost_point is None or x > rightmost_point[0]:
+                    if rightmost_point is None or x > rightmost_point[0] and z > rightmost_point[2]:
                         rightmost_point = point
                     if lowest_point is None or y < lowest_point[1]:
                         lowest_point = point
@@ -414,8 +421,7 @@ class ProcessPoint:
                         leftmost_point = point
                     if furthest_point is None or z < furthest_point[2]:
                         furthest_point = point
-
-
+            
                 return rightmost_point, lowest_point, furthest_point, leftmost_point
             
             def find_centroid(point_cloud):
@@ -436,7 +442,8 @@ class ProcessPoint:
             # Convert Open3D point cloud object to NumPy array
             pcdedges_np = np.asarray(pcdedges_o3d.points)
             rightmost_point, lowest_point, furthest_point, leftmost_point = mostly_right_and_above(pcdedges_np)
-            
+
+
             pcd_np = np.asarray(pcdedges_o3d.points)
             centroid = find_centroid(pcd_np)
             range_threshold = 0.1  
@@ -479,9 +486,9 @@ class ProcessPoint:
             new_line = [[rightmost_point, rightmost_to_highest_point]]
             end_to_furthest_line = [[rightmost_to_highest_point, leftmost_point]]
 
-            #lowest_to_highest_vector = highest_center_point - lowest_point
-            #rightmost_to_highest_vector = -lowest_to_highest_vector
-            #rightmost_to_highest_point_low = rightmost_point + rightmost_to_highest_vector
+            lowest_to_highest_vector = highest_center_point - lowest_point
+            rightmost_to_highest_vector = -lowest_to_highest_vector
+            rightmost_to_highest_point_low = rightmost_point + rightmost_to_highest_vector
             #new_line_low = [[rightmost_point, rightmost_to_highest_point_low]]
 
 
