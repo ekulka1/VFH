@@ -199,6 +199,7 @@ class ProcessPoint:
             
             color_obj = cv2.imread("/home/erik/catkin_ws/src/VFH/VFH_ROS/pictures/color_result.png")
             depth_obj = cv2.imread("/home/erik/catkin_ws/src/VFH/VFH_ROS/pictures/depth_result.png")
+
             #color_obj = cv2.imread("/home/erik/catkin_ws/src/VFH/VFH_ROS/pictures/color_result.png")
             
             
@@ -307,15 +308,13 @@ class ProcessPoint:
             pcdload_o3d.colors = o3d.utility.Vector3dVector(colors)
 
             print("pcdload_o3d")
-            #o3d.visualization.draw_geometries([pcdload_o3d])
             
-
-            # Edge detection
             
             # define hyperparameters
             
+
             k_n = 400 # otherside 40  #400     #350-420 #50
-            thresh = 0.095 # otherside 0.1 #0.95           #0.08
+            thresh = 0.095  # otherside 0.1 #0.095           #0.08
 
             pcd_np = np.zeros((len(pcdload.points),6))
 
@@ -483,22 +482,47 @@ class ProcessPoint:
             leftmost_to_highest_vector = highest_center_point - leftmost_point
             rightmost_to_highest_vector = -leftmost_to_highest_vector
             rightmost_to_highest_point = rightmost_point + rightmost_to_highest_vector
+            
             new_line = [[rightmost_point, rightmost_to_highest_point]]
+            
             end_to_furthest_line = [[rightmost_to_highest_point, leftmost_point]]
 
             lowest_to_highest_vector = highest_center_point - lowest_point
             rightmost_to_highest_vector = -lowest_to_highest_vector
             rightmost_to_highest_point_low = rightmost_point + rightmost_to_highest_vector
-            #new_line_low = [[rightmost_point, rightmost_to_highest_point_low]]
+            right_line_front = [[rightmost_point, rightmost_to_highest_point_low]]
+
+            centerpoint_to_rightmost_vector = highest_center_point - rightmost_point
+            lowestpoint_to_rightmost_vector = -centerpoint_to_rightmost_vector
+            lowest_point_to_rightmost_point_low = lowest_point + lowestpoint_to_rightmost_vector
+            down_line_front = [[lowest_point, lowest_point_to_rightmost_point_low]]
+
+            leftmost_to_lowest_vector = -lowest_to_highest_vector
+            leftmost_to_lowest_point_back = leftmost_point + leftmost_to_lowest_vector
+            left_line_to_back  = [[leftmost_point, leftmost_to_lowest_point_back]]
+
+            rightmost_to_furthrest_vector_up = rightmost_point - rightmost_to_highest_point
+            rightmost_to_furthrest_vector_down = - rightmost_to_furthrest_vector_up
+            rightmost_down_to_furthrest_point = lowest_point_to_rightmost_point_low + rightmost_to_furthrest_vector_down
+            right_line_to_back = [[lowest_point_to_rightmost_point_low, rightmost_down_to_furthrest_point]]
+
+            
+            right_line_back = [[rightmost_to_highest_point, rightmost_down_to_furthrest_point]]
+            left_line_back = [[lowest_point, leftmost_to_lowest_point_back]]
+            down_line_back = [[leftmost_to_lowest_point_back, rightmost_down_to_furthrest_point]]
 
 
-            #lines.extend(new_line_low)
+            lines.extend(down_line_back)
+            lines.extend(left_line_back)
+            lines.extend(left_line_to_back)
+            lines.extend(right_line_back)
+            lines.extend(right_line_to_back)
+            lines.extend(right_line_front)
             lines.extend(new_line)
             lines.extend(end_to_furthest_line)
+            lines.extend(down_line_front)
+
             line_colors = [[1, 0, 0] for _ in range(len(lines))] 
-            
-            
-            
             
             line_set = o3d.geometry.LineSet()
             line_set.points = o3d.utility.Vector3dVector([point for line in lines for point in line])
